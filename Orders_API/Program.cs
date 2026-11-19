@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Orders_API.Clients;
 using Orders_API.Data;
+using Orders_API.Messaging;
 using Orders_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,7 @@ builder.Services.AddHttpClient<IProductsClient, ProductsClient>(client =>
 });
 
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddSingleton<IEventPublisher, RabbitMqPublisher>();
 
 var app = builder.Build();
 
