@@ -23,9 +23,12 @@ namespace Orders_API.Controllers
         public async Task<IActionResult> Create(CreateOrderRequest request, CancellationToken ct)
         {
             var result = await orders.PlaceOrderAsync(request, ct);
+
             return result.Order is not null
-                ? CreatedAtAction(nameof(GetById), new { id = result.Order.Id }, result.Order)
-                : StatusCode(result.StatusCode, new { error = result.Error });
+                ? AcceptedAtAction(nameof(GetById), new { id = result.Order.Id },
+                new { orderId = result.Order.Id, status = result.Order.Status.ToString() })
+                : StatusCode(result.StatusCode, new { error = result.Error });              
+                
         }
     }
 }

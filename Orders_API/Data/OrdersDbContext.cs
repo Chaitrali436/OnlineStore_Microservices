@@ -10,6 +10,7 @@ namespace Orders_API.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Order>().Property(o => o.TotalPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<Order>().Property(o => o.Status).HasConversion<string>();
         }
     }
 }

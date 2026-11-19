@@ -1,12 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Orders_API.Clients;
 using Orders_API.Data;
+using Orders_API.Messaging;
 using Orders_API.Models;
 
 namespace Orders_API.Services
 {
     public record OrderResult(Order? Order, string? Error, int StatusCode);
-    public class OrderService(OrdersDbContext db, IProductsClient products)
+    public class OrderService(OrdersDbContext db, IProductsClient products,IEventPublisher publisher)
     {
 
         public async Task<OrderResult> PlaceOrderAsync(CreateOrderRequest request, CancellationToken ct = default)
@@ -20,23 +21,29 @@ namespace Orders_API.Services
                 if (product is null)
                     return new OrderResult(null, "Product not found.", 404);
 
-                var reduced = await products.ReduceStockAsync(request.ProductId, request.Quantity, ct);
-                if (reduced == ReduceStockResult.InsufficientStock)
-                    return new OrderResult(null, "Not enough stock.", 409);
-                if (reduced == ReduceStockResult.NotFound)
-                    return new OrderResult(null, "Product not found.", 404);
+                //remove the ReduceStockAsync data
+
+                //var reduced = await products.ReduceStockAsync(request.ProductId, request.Quantity, ct);
+                //if (reduced == ReduceStockResult.InsufficientStock)
+                //    return new OrderResult(null, "Not enough stock.", 409);
+                //if (reduced == ReduceStockResult.NotFound)
+                //    return new OrderResult(null, "Product not found.", 404);
 
                 var order = new Order
                 {
                     ProductId = product.Id,
                     ProductName = product.Name,
                     Quantity = request.Quantity,
-                    TotalPrice = product.Price * request.Quantity
+                    TotalPrice = product.Price * request.Quantity,
+                    Status=OrderStatus.Pending
                 };
                 db.Orders.Add(order);
                 await db.SaveChangesAsync(ct);
 
-                return new OrderResult(order, null, 201);
+                await publisher.PublishAsync(RabbitMqPublisher.OrderPlacedRoutingKey, new OrderPlaced(
+                    order.Id, order.ProductId, order.Quantity, DateTime.UtcNow),ct);
+
+                return new OrderResult(order, null, 202);
             }
             catch (ProductServiceUnavailableException)
             {
