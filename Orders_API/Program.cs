@@ -22,6 +22,7 @@ builder.Services.AddHttpClient<IProductsClient, ProductsClient>(client =>
 
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddSingleton<IEventPublisher, RabbitMqPublisher>();
+builder.Services.AddHostedService<StockResultConsumer>();
 
 var app = builder.Build();
 
